@@ -3,8 +3,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext';
 import Toast from 'react-native-toast-message';
+import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 /**
  * SIGN IN SCREEN
@@ -16,6 +17,7 @@ import Toast from 'react-native-toast-message';
 const SignInScreen = () => {
   const router = useRouter();
   const { signIn } = useAuth(); // Get the signIn function from our AuthContext
+  const { isDark, colors } = useTheme();
   
   // Form state
   const [email, setEmail] = useState('');
@@ -89,16 +91,16 @@ const SignInScreen = () => {
         text2: 'You have successfully signed in'
       });
       
-      // Navigate to home screen
+      // Navigate to tabs (home screen)
       setTimeout(() => {
-        router.replace('/home');
+        router.replace('/(tabs)');
       }, 1000);
     }
   };
 
   return (
     <LinearGradient
-      colors={["#3AB5F6", "#5B7EF8", "#8364FF"]}
+      colors={colors.background}
       className="flex-1"
     >
       <KeyboardAvoidingView
@@ -113,52 +115,52 @@ const SignInScreen = () => {
               className="self-start mb-8"
             >
               <View className="flex-row items-center">
-                <Ionicons name="arrow-back" size={20} color="white" />
-                <Text className="text-white text-lg ml-2">Back</Text>
+                <Ionicons name="arrow-back" size={20} color={colors.icon} />
+                <Text className={`${colors.text} text-lg ml-2`}>Back</Text>
               </View>
             </TouchableOpacity>
 
             {/* Title */}
             <View className="mb-8 mt-12">
-              <Text className="text-4xl font-bold text-white text-center mb-2">Welcome Back</Text>
-              <Text className="text-white/80 text-center">Sign in to continue your journey</Text>
+              <Text className={`text-4xl font-bold ${colors.text} text-center mb-2`}>Welcome Back</Text>
+              <Text className={`${colors.textSecondary} text-center`}>Sign in to continue your journey</Text>
             </View>
 
             {/* Form Card */}
-            <View className="bg-white/10 backdrop-blur-lg rounded-3xl p-6 shadow-lg mb-8">
+            <View className={`${colors.card} rounded-3xl p-6 shadow-lg mb-8`}>
               {/* Email */}
               <View className="mb-4">
-                <Text className="text-white mb-2 ml-1 font-medium">Email</Text>
+                <Text className={`${colors.text} mb-2 ml-1 font-medium`}>Email</Text>
                 <View className="relative">
                   <View className="absolute left-3 top-3 z-10">
-                    <Ionicons name="mail-outline" size={20} color="rgba(255,255,255,0.6)" />
+                    <Ionicons name="mail-outline" size={20} color={colors.icon} />
                   </View>
                   <TextInput
                     placeholder="you@example.com"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)"}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
                     autoCapitalize="none"
-                    className="bg-white/20 border border-white/30 text-white h-12 rounded-xl pl-10 pr-4"
+                    className={`${isDark ? 'bg-white/20 border-white/30' : 'bg-gray-50 border-gray-200'} border ${colors.text} h-12 rounded-xl pl-10 pr-4`}
                   />
                 </View>
               </View>
 
               {/* Password */}
               <View className="mb-2">
-                <Text className="text-white mb-2 ml-1 font-medium">Password</Text>
+                <Text className={`${colors.text} mb-2 ml-1 font-medium`}>Password</Text>
                 <View className="relative">
                   <View className="absolute left-3 top-3 z-10">
-                    <Ionicons name="lock-closed-outline" size={20} color="rgba(255,255,255,0.6)" />
+                    <Ionicons name="lock-closed-outline" size={20} color={colors.icon} />
                   </View>
                   <TextInput
                     placeholder="••••••••"
-                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    placeholderTextColor={isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)"}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
-                    className="bg-white/20 border border-white/30 text-white h-12 rounded-xl pl-10 pr-4"
+                    className={`${isDark ? 'bg-white/20 border-white/30' : 'bg-gray-50 border-gray-200'} border ${colors.text} h-12 rounded-xl pl-10 pr-4`}
                   />
                 </View>
               </View>
@@ -168,27 +170,27 @@ const SignInScreen = () => {
                 onPress={() => router.push('/(auth)/forgotpassword')}
                 className="mb-6"
               >
-                <Text className="text-white/80 text-right text-sm underline">Forgot password?</Text>
+                <Text className={`${colors.textSecondary} text-right text-sm underline`}>Forgot password?</Text>
               </TouchableOpacity>
 
               {/* Sign In Button */}
               <TouchableOpacity 
                 onPress={handleSubmit}
                 disabled={loading}
-                className={`bg-white h-12 rounded-xl justify-center items-center mb-4 shadow-md ${loading ? 'opacity-70' : ''}`}
+                className={`${isDark ? 'bg-white' : 'bg-cyan-500'} h-12 rounded-xl justify-center items-center mb-4 shadow-md ${loading ? 'opacity-70' : ''}`}
               >
                 {loading ? (
-                  <ActivityIndicator color="#3AB5F6" />
+                  <ActivityIndicator color={isDark ? "#3AB5F6" : "white"} />
                 ) : (
-                  <Text className="text-cyan-500 text-lg font-semibold">Sign In</Text>
+                  <Text className={`${isDark ? 'text-cyan-500' : 'text-white'} text-lg font-semibold`}>Sign In</Text>
                 )}
               </TouchableOpacity>
 
               {/* Sign Up Link */}
-              <Text className="text-white/80 text-center text-sm">
+              <Text className={`${colors.textSecondary} text-center text-sm`}>
                 Don't have an account?{' '}
                 <Text 
-                  className="font-semibold underline text-white"
+                  className={`font-semibold underline ${colors.text}`}
                   onPress={() => router.push('/(auth)/signup')}
                 >
                   Sign Up
