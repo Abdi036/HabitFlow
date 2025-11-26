@@ -1,9 +1,33 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
+import { useEffect } from "react";
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function LandingScreen() {
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      // User is logged in, navigate to home
+      router.replace('/home');
+    }
+  }, [user, loading]);
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <LinearGradient
+        colors={["#3AB5F6", "#8364FF"]}
+        className="flex-1 justify-center items-center"
+      >
+        <ActivityIndicator size="large" color="white" />
+        <Text className="text-white mt-4">Loading...</Text>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient

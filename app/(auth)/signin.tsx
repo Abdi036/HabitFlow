@@ -3,22 +3,97 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
+import Toast from 'react-native-toast-message';
+
+/**
+ * SIGN IN SCREEN
+ * 
+ * This screen allows existing users to log into their account
+ * It uses the useAuth hook to access the signIn function from AuthContext
+ */
 
 const SignInScreen = () => {
   const router = useRouter();
+  const { signIn } = useAuth(); // Get the signIn function from our AuthContext
+  
+  // Form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+ 
   const handleSubmit = async () => {
+   
     if (!email || !password) {
+      Toast.show({
+        type: 'error',
+        text1: 'Missing Information',
+        text2: 'Please enter both email and password'
+      });
       return;
     }
 
+    // Start loading state
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 2000);
+    
+    /**
+     * Call the signIn function from AuthContext
+     * This function will:
+     * 1. Create a session in Appwrite (log in)
+     * 2. Fetch and store the user data
+     * 3. Return error if credentials are wrong
+     */
+    const { error } = await signIn(email, password);
+
+    // Stop loading state
+    setLoading(false);
+    
+    if (error) {
+      /**
+       * ERROR HANDLING
+       * 
+       * Common Appwrite errors:
+       * - "user_invalid_credentials": Wrong email or password
+       * - "user_not_found": No account with this email
+       * - "user_blocked": Account has been disabled
+       */
+      let errorMessage = 'Invalid email or password';
+      
+      // Check for specific error messages
+      if (error.message && error.message.includes('Invalid credentials')) {
+        errorMessage = 'Invalid email or password';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Toast.show({
+        type: 'error',
+        text1: 'Sign In Failed',
+        text2: errorMessage
+      });
+    } else {
+      /**
+       * SUCCESS!
+       * 
+       * At this point:
+       * - User session has been created in Appwrite
+       * - User is logged in
+       * - User data is stored in AuthContext
+       * 
+       * Navigate to home screen
+       */
+      Toast.show({
+        type: 'success',
+        text1: 'Welcome Back!',
+        text2: 'You have successfully signed in'
+      });
+      
+      // Navigate to home screen
+      setTimeout(() => {
+        router.replace('/home');
+      }, 1000);
+    }
   };
 
   return (

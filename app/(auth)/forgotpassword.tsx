@@ -3,25 +3,67 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Toast from 'react-native-toast-message';
+
+/**
+ * FORGOT PASSWORD SCREEN (UI ONLY - NO FUNCTIONALITY)
+ * 
+ * This screen is for UI purposes only
+ * No actual password recovery functionality implemented
+ */
 
 const ForgotPasswordScreen = () => {
   const router = useRouter();
+  
+  // Form state
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
+  /**
+   * HANDLE SUBMIT - UI ONLY
+   * 
+   * Just shows a message, doesn't actually send emails
+   */
   const handleSubmit = async () => {
+    // VALIDATION: Check email is filled
     if (!email) {
-      // You can add toast/alert functionality here
+      Toast.show({
+        type: 'error',
+        text1: 'Missing Information',
+        text2: 'Please enter your email address'
+      });
       return;
     }
 
+    // Basic email validation
+    if (!email.includes('@')) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid Email',
+        text2: 'Please enter a valid email address'
+      });
+      return;
+    }
+
+    // Start loading state (just for UI)
     setLoading(true);
-    // Add your reset password logic here
-    // For now, just simulate a delay
+    
+    // Simulate delay
     setTimeout(() => {
       setLoading(false);
+      
       // Show success message
-    }, 2000);
+      Toast.show({
+        type: 'info',
+        text1: 'Feature Coming Soon',
+        text2: 'Password recovery will be available in a future update'
+      });
+      
+      // Go back after delay
+      setTimeout(() => {
+        router.back();
+      }, 2000);
+    }, 1000);
   };
 
   return (

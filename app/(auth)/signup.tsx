@@ -3,33 +3,127 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { useAuth } from '../../contexts/AuthContext';
+
+/**
+ * SIGN UP SCREEN
+ * 
+ * This screen allows new users to create an account
+ * It uses the useAuth hook to access the signUp function from AuthContext
+ */
 
 const SignUpScreen = () => {
   const router = useRouter();
+  const { signUp } = useAuth(); // Get the signUp function from our AuthContext
+  
+  // Form state
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  /**
+   * HANDLE SUBMIT FUNCTION
+   * 
+   * This is called when user presses the "Sign Up" button
+   * 
+   * STEPS:
+   * 1. Validate all fields are filled
+   * 2. Check passwords match
+   * 3. Check password meets minimum requirements
+   * 4. Call the signUp function from AuthContext
+   * 5. Handle success/error responses
+   */
   const handleSubmit = async () => {
+    // VALIDATION STEP 1: Check all fields are filled
     if (!fullName || !email || !password || !confirmPassword) {
-      // You can add toast/alert functionality here
+      Toast.show({
+        type: 'error',
+        text1: 'Missing Information',
+        text2: 'Please fill in all fields'
+      });
       return;
     }
     
+    // VALIDATION STEP 2: Check passwords match
     if (password !== confirmPassword) {
-      // Show error: Passwords don't match
+      Toast.show({
+        type: 'error',
+        text1: 'Password Mismatch',
+        text2: 'Passwords do not match'
+      });
       return;
     }
 
+    // VALIDATION STEP 3: Check password length (Appwrite requires min 8 characters)
+    if (password.length < 8) {
+      Toast.show({
+        type: 'error',
+        text1: 'Weak Password',
+        text2: 'Password must be at least 8 characters'
+      });
+      return;
+    }
+
+    // Start loading state
     setLoading(true);
-    // Add your signup logic here
-    // For now, just simulate a delay
-    setTimeout(() => {
-      setLoading(false);
-      // Navigate to home or show success
-    }, 2000);
+    
+    /**
+     * Call the signUp function from AuthContext
+     * This function will:
+     * 1. Create an account in Appwrite
+     * 2. Automatically log the user in
+     * 3. Store the user in our app state
+     */
+    const { error } = await signUp(email, password, fullName);
+
+    // Stop loading state
+    setLoading(false);
+    
+    if (error) {
+      /**
+       * ERROR HANDLING
+       * 
+       * Common Appwrite errors:
+       * - "user_already_exists": Email is already registered
+       * - "user_invalid_credentials": Invalid email format
+       * - "general_argument_invalid": Password doesn't meet requirements
+       */
+      let errorMessage = 'An error occurred during sign up';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Toast.show({
+        type: 'error',
+        text1: 'Sign Up Failed',
+        text2: errorMessage
+      });
+    } else {
+      /**
+       * SUCCESS!
+       * 
+       * At this point:
+       * - User account has been created in Appwrite
+       * - User is logged in (session created)
+       * - User data is stored in AuthContext
+       * 
+       * Navigate to signin screen as requested
+       */
+      Toast.show({
+        type: 'success',
+        text1: 'Success!',
+        text2: 'Account created successfully'
+      });
+      
+      // Navigate to signin screen after short delay
+      setTimeout(() => {
+        router.push('/(auth)/signin');
+      }, 1000);
+    }
   };
 
   return (
