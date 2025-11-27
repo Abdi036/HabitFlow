@@ -6,6 +6,7 @@ import { ActivityIndicator, RefreshControl, ScrollView, Text, TouchableOpacity, 
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getHabits, updateHabit } from "../../lib/appwrite";
+import { shouldResetHabit } from "../../lib/habitUtils";
 import type { Habit } from "../../lib/types";
 
 export default function HomeScreen() {
@@ -22,7 +23,21 @@ export default function HomeScreen() {
     
     try {
       const fetchedHabits = await getHabits(user.$id);
-      setHabits(fetchedHabits);
+      
+      // Check and reset habits if needed based on frequency
+      const processedHabits = await Promise.all(
+        fetchedHabits.map(async (habit) => {
+          // Check if habit should be reset
+          if (shouldResetHabit(habit)) {
+            // Update the database to reset completion status
+            await updateHabit(habit.$id, false, habit.completedDates);
+            return { ...habit, completed: false };
+          }
+          return habit;
+        })
+      );
+      
+      setHabits(processedHabits);
     } catch (error) {
       console.error('Error fetching habits:', error);
     } finally {
