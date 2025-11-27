@@ -14,13 +14,14 @@ export default function SettingsScreen() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.replace('/');
+    router.replace('/signin');
   };
 
   return (
     <LinearGradient
       colors={colors.background}
       className="flex-1"
+      key={isDark ? 'dark' : 'light'}
     >
       <ScrollView className="flex-1 px-6 pt-12">
         {/* Header */}

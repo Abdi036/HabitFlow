@@ -10,10 +10,7 @@ export default function HomeScreen() {
   const { isDark, colors } = useTheme();
   const router = useRouter();
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.replace('/');
-  };
+  
 
   // Mock habits data
   const habits = [
@@ -50,9 +47,7 @@ export default function HomeScreen() {
               <TouchableOpacity onPress={() => router.push('/notifications')}>
                 <Ionicons name="notifications-outline" size={24} color={colors.icon} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleSignOut}>
-                <Ionicons name="log-out-outline" size={24} color={colors.icon} />
-              </TouchableOpacity>
+               
             </View>
           </View>
 

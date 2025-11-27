@@ -51,7 +51,7 @@ export default function TabLayout() {
         options={{
           title: 'Create',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle" size={size + 8} color={color} />
+            <Ionicons name="add-circle" size={size + 6} color={color} />
           ),
           tabBarIconStyle: {
             marginTop: -10,
