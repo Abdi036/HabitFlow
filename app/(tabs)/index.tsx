@@ -83,60 +83,60 @@ export default function HomeScreen() {
       colors={colors.background}
       className="flex-1"
     >
-      <ScrollView 
-        className="flex-1"
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh}
-            tintColor={isDark ? "#fff" : "#000"}
-          />
-        }
-      >
-        {/* Header */}
-        <View className="px-6 pt-12 pb-6">
-          <View className="flex-row justify-between items-center mb-6">
-            <View>
-              <Text className={`${colors.text} text-2xl font-bold`}>Today's Habits</Text>
-              <Text className={`${colors.textSecondary} text-sm mt-1`}>
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-3">
-              <TouchableOpacity onPress={() => router.push('/notifications')}>
-                <Ionicons name="notifications-outline" size={24} color={colors.icon} />
-              </TouchableOpacity>
-               
-            </View>
+      {/* Fixed Header */}
+      <View className="px-6 pt-12 pb-6">
+        <View className="flex-row justify-between items-center mb-6">
+          <View>
+            <Text className={`${colors.text} text-2xl font-bold`}>Today's Habits</Text>
+            <Text className={`${colors.textSecondary} text-sm mt-1`}>
+              {new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </Text>
           </View>
-
-          {/* Progress Card */}
-          <View className={`${colors.card} p-6 rounded-3xl`}>
-            <View className="flex-row justify-between items-center">
-              <View>
-                <Text className={`${colors.textSecondary} text-sm font-medium mb-2`}>Daily Progress</Text>
-                <Text className={`${colors.text} text-3xl font-bold`}>
-                  {completedCount}/{habits.length}
-                </Text>
-                <Text className={`${colors.textSecondary} text-xs mt-1`}>habits completed</Text>
-              </View>
-              
-              {/* Simple Progress Circle */}
-              <View className={`w-24 h-24 rounded-full ${isDark ? 'bg-white/10' : 'bg-gray-100'} items-center justify-center`}>
-                <Text className={`${colors.text} text-2xl font-bold`}>{Math.round(progress)}%</Text>
-              </View>
-            </View>
+          <View className="flex-row items-center gap-3">
+            <TouchableOpacity onPress={() => router.push('/notifications')}>
+              <Ionicons name="notifications-outline" size={24} color={colors.icon} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Habits List */}
-        <View className="px-6 pb-6">
-          <Text className={`${colors.text} font-semibold text-lg mb-4`}>Your Habits</Text>
-          
+        {/* Progress Card */}
+        <View className={`${colors.card} p-6 rounded-3xl`}>
+          <View className="flex-row justify-between items-center">
+            <View>
+              <Text className={`${colors.textSecondary} text-sm font-medium mb-2`}>Daily Progress</Text>
+              <Text className={`${colors.text} text-3xl font-bold`}>
+                {completedCount}/{habits.length}
+              </Text>
+              <Text className={`${colors.textSecondary} text-xs mt-1`}>habits completed</Text>
+            </View>
+            
+            {/* Simple Progress Circle */}
+            <View className={`w-24 h-24 rounded-full ${isDark ? 'bg-white/10' : 'bg-gray-100'} items-center justify-center`}>
+              <Text className={`${colors.text} text-2xl font-bold`}>{Math.round(progress)}%</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Scrollable Habits List */}
+      <View className="flex-1 px-6">
+        <Text className={`${colors.text} font-semibold text-lg mb-4`}>Your Habits</Text>
+        
+        <ScrollView 
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor={isDark ? "#fff" : "#000"}
+            />
+          }
+        >
           {loading ? (
             <View className="items-center justify-center py-12">
               <ActivityIndicator size="large" color={isDark ? "#fff" : "#3AB5F6"} />
@@ -157,35 +157,40 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            habits.map((habit) => (
-              <View 
-                key={habit.$id} 
-                className={`${colors.card} p-4 rounded-2xl mb-3 flex-row items-center justify-between`}
-              >
-                <View className="flex-row items-center flex-1">
-                  <Text className="text-3xl mr-3">{habit.icon}</Text>
-                  <View className="flex-1">
-                    <Text className={`${colors.text} font-medium`}>{habit.name}</Text>
-                    <Text className={`${colors.textSecondary} text-xs capitalize mt-1`}>
-                      {habit.category} • {habit.frequency}
-                    </Text>
-                  </View>
-                </View>
-                <TouchableOpacity 
-                  onPress={() => toggleHabitCompletion(habit.$id, habit.completed, habit.completedDates)}
-                  className={`w-8 h-8 rounded-full items-center justify-center ${
-                    habit.completed ? 'bg-green-400' : (isDark ? 'bg-white/30' : 'bg-gray-200')
-                  }`}
+            <View className="pb-6">
+              {habits.map((habit) => (
+                <View 
+                  key={habit.$id} 
+                  className={`${colors.card} p-4 rounded-2xl mb-3 flex-row items-center justify-between`}
                 >
-                  {habit.completed && (
-                    <Ionicons name="checkmark" size={20} color="white" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            ))
+                  <TouchableOpacity 
+                    className="flex-row items-center flex-1"
+                    onPress={() => router.push(`/habit/${habit.$id}`)}
+                  >
+                    <Text className="text-3xl mr-3">{habit.icon}</Text>
+                    <View className="flex-1">
+                      <Text className={`${colors.text} font-medium`}>{habit.name}</Text>
+                      <Text className={`${colors.textSecondary} text-xs capitalize mt-1`}>
+                        {habit.category} • {habit.frequency}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => toggleHabitCompletion(habit.$id, habit.completed, habit.completedDates)}
+                    className={`w-8 h-8 rounded-full items-center justify-center ${
+                      habit.completed ? 'bg-green-400' : (isDark ? 'bg-white/30' : 'bg-gray-200')
+                    }`}
+                  >
+                    {habit.completed && (
+                      <Ionicons name="checkmark" size={20} color="white" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
           )}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     </LinearGradient>
   );
 }

@@ -34,6 +34,7 @@ export async function createHabit(
         category: habitData.category,
         frequency: habitData.frequency,
         icon: habitData.icon,
+        description: habitData.description || "",
         userId: userId,
         completed: false,
         completedDates: [],
@@ -60,7 +61,7 @@ export async function getHabits(userId: string): Promise<Habit[]> {
     return response.documents as unknown as Habit[];
   } catch (error) {
     console.error('Error fetching habits:', error);
-    throw error;
+    return [];
   }
 }
 
@@ -99,6 +100,39 @@ export async function updateHabit(
     return document as unknown as Habit;
   } catch (error) {
     console.error('Error updating habit:', error);
+    throw error;
+  }
+}
+
+// Update habit details (name, description)
+export async function updateHabitDetails(
+  habitId: string,
+  updates: { name?: string; description?: string }
+): Promise<Habit> {
+  try {
+    const document = await databases.updateDocument(
+      config.databaseId,
+      config.habitsTableId,
+      habitId,
+      updates
+    );
+    return document as unknown as Habit;
+  } catch (error) {
+    console.error('Error updating habit details:', error);
+    throw error;
+  }
+}
+
+// Delete a habit
+export async function deleteHabit(habitId: string): Promise<void> {
+  try {
+    await databases.deleteDocument(
+      config.databaseId,
+      config.habitsTableId,
+      habitId
+    );
+  } catch (error) {
+    console.error('Error deleting habit:', error);
     throw error;
   }
 }

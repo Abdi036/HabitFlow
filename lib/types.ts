@@ -7,6 +7,7 @@ export interface Habit {
   userId: string;
   completed: boolean;
   completedDates: string[];
+  description?: string;
   $createdAt: string;
   $updatedAt: string;
 }
@@ -16,4 +17,5 @@ export interface HabitFormData {
   category: string;
   frequency: string;
   icon: string;
+  description?: string;
 }

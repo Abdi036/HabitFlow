@@ -144,6 +144,21 @@ export default function CreateScreen() {
             )}
           </View>
 
+          {/* Description Input */}
+          <View className="mb-6">
+            <Text className={`${colors.text} font-medium mb-3`}>Description (Optional)</Text>
+            <TextInput
+              className={`${isDark ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-900'} p-4 rounded-xl`}
+              placeholder="Add a description..."
+              placeholderTextColor={colors.textSecondary}
+              value={formData.description}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+          </View>
+
           {/* Frequency Dropdown */}
           <View className="z-10">
             <Text className={`${colors.text} font-medium mb-2`}>Frequency</Text>
