@@ -6,6 +6,7 @@ export interface Habit {
   icon: string;
   userId: string;
   completed: boolean;
+  completedDates: string[];
   $createdAt: string;
   $updatedAt: string;
 }

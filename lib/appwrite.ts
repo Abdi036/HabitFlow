@@ -36,6 +36,7 @@ export async function createHabit(
         icon: habitData.icon,
         userId: userId,
         completed: false,
+        completedDates: [],
       }
     );
     return document as unknown as Habit;
@@ -63,17 +64,37 @@ export async function getHabits(userId: string): Promise<Habit[]> {
   }
 }
 
-// Update habit completion status
+// Update habit completion status and history
 export async function updateHabit(
   habitId: string, 
-  completed: boolean
+  completed: boolean,
+  currentCompletedDates: string[] = []
 ): Promise<Habit> {
   try {
+    // Use local date instead of UTC to avoid timezone issues
+    const today = new Date();
+    const localDateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    let updatedDates = [...currentCompletedDates];
+
+    if (completed) {
+      // Add today if not present
+      if (!updatedDates.includes(localDateStr)) {
+        updatedDates.push(localDateStr);
+      }
+    } else {
+      // Remove today
+      updatedDates = updatedDates.filter(date => date !== localDateStr);
+    }
+
     const document = await databases.updateDocument(
       config.databaseId,
       config.habitsTableId,
       habitId,
-      { completed }
+      { 
+        completed,
+        completedDates: updatedDates
+      }
     );
     return document as unknown as Habit;
   } catch (error) {

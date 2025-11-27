@@ -1,45 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRef, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
-
-interface Habit {
-  id: string;
-  name: string;
-  icon: string;
-}
-
-// Mock data
-const mockHabits: Habit[] = [
-  { id: "1", name: "Morning Meditation", icon: "🧘" },
-  { id: "2", name: "Read 30 Minutes", icon: "📚" },
-  { id: "3", name: "Workout", icon: "💪" },
-];
-
-const mockCompletions = [
-  { habitId: "1", date: "2025-11-20" },
-  { habitId: "1", date: "2025-11-21" },
-  { habitId: "1", date: "2025-11-22" },
-  { habitId: "1", date: "2025-11-23" },
-  { habitId: "1", date: "2025-11-24" },
-  { habitId: "1", date: "2025-11-25" },
-  { habitId: "1", date: "2025-11-26" },
-  { habitId: "2", date: "2025-11-24" },
-  { habitId: "2", date: "2025-11-25" },
-  { habitId: "2", date: "2025-11-26" },
-  { habitId: "1", date: "2025-11-15" },
-  { habitId: "1", date: "2025-11-10" },
-  { habitId: "1", date: "2025-11-05" },
-];
+import { getHabits } from "../../lib/appwrite";
+import type { Habit } from "../../lib/types";
 
 // Heatmap Component
-const HabitHeatmap = ({ habitId }: { habitId: string }) => {
+const HabitHeatmap = ({ completedDates }: { completedDates: string[] }) => {
   const { isDark, colors } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
-  const completedDates = mockCompletions
-    .filter(c => c.habitId === habitId)
-    .map(c => c.date);
 
   // Get current year range (Jan 1 - Dec 31)
   const today = new Date();
@@ -68,7 +40,8 @@ const HabitHeatmap = ({ habitId }: { habitId: string }) => {
   }
 
   const isDateCompleted = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    // Use local date format to match how we store dates
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     return completedDates.includes(dateStr);
   };
 
@@ -187,26 +160,53 @@ const HabitHeatmap = ({ habitId }: { habitId: string }) => {
 };
 
 export default function HistoryScreen() {
+  const { user } = useAuth();
   const { isDark, colors } = useTheme();
-  const [selectedHabitId, setSelectedHabitId] = useState<string>(mockHabits[0]?.id || "");
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [selectedHabitId, setSelectedHabitId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
-  const calculateStreak = (habitId: string) => {
-    const completions = mockCompletions
-      .filter(c => c.habitId === habitId)
-      .map(c => new Date(c.date))
+  const fetchHabits = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const fetchedHabits = await getHabits(user.$id);
+      setHabits(fetchedHabits);
+      if (fetchedHabits.length > 0 && !selectedHabitId) {
+        setSelectedHabitId(fetchedHabits[0].$id);
+      }
+    } catch (error) {
+      console.error('Error fetching habits:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchHabits();
+    }, [fetchHabits])
+  );
+
+  const selectedHabit = habits.find(h => h.$id === selectedHabitId);
+
+  const calculateStreak = (dates: string[]) => {
+    if (!dates || dates.length === 0) return 0;
+
+    const sortedDates = [...dates]
+      .map(d => new Date(d))
       .sort((a, b) => b.getTime() - a.getTime());
     
-    if (completions.length === 0) return 0;
-
     let streak = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    for (let i = 0; i < completions.length; i++) {
+    for (let i = 0; i < sortedDates.length; i++) {
       const checkDate = new Date(today);
-      checkDate.setDate(today.getDate() - i);
+      checkDate.setDate(today.getDate() - streak);
       
-      const hasCompletion = completions.some(d => {
+      // Check if we have a completion for the check date
+      const hasCompletion = sortedDates.some(d => {
         const completionDate = new Date(d);
         completionDate.setHours(0, 0, 0, 0);
         return completionDate.getTime() === checkDate.getTime();
@@ -214,19 +214,21 @@ export default function HistoryScreen() {
 
       if (hasCompletion) {
         streak++;
-      } else if (i === 0) {
+      } else if (streak === 0) {
+        // If today is not completed, check yesterday
         const yesterday = new Date(today);
         yesterday.setDate(today.getDate() - 1);
-        const hasYesterday = completions.some(d => {
+        const hasYesterday = sortedDates.some(d => {
           const completionDate = new Date(d);
           completionDate.setHours(0, 0, 0, 0);
           return completionDate.getTime() === yesterday.getTime();
         });
+        
         if (hasYesterday) {
           streak = 1;
-          continue;
+        } else {
+          break;
         }
-        break;
       } else {
         break;
       }
@@ -235,7 +237,7 @@ export default function HistoryScreen() {
     return streak;
   };
 
-  const currentStreak = calculateStreak(selectedHabitId);
+  const currentStreak = selectedHabit ? calculateStreak(selectedHabit.completedDates || []) : 0;
 
   return (
     <LinearGradient
@@ -248,7 +250,12 @@ export default function HistoryScreen() {
           <Text className={`${colors.textSecondary} text-sm`}>Track your progress over time</Text>
         </View>
 
-        {mockHabits.length === 0 ? (
+        {loading ? (
+          <View className="items-center justify-center py-12">
+            <ActivityIndicator size="large" color={isDark ? "#fff" : "#3AB5F6"} />
+            <Text className={`${colors.textSecondary} mt-4`}>Loading history...</Text>
+          </View>
+        ) : habits.length === 0 ? (
           <View className="items-center py-12">
             <Text className="text-6xl mb-4">📅</Text>
             <Text className={`${colors.text} text-xl font-semibold mb-2`}>No habits yet</Text>
@@ -260,19 +267,19 @@ export default function HistoryScreen() {
             <View>
               <Text className={`${colors.text} font-medium mb-3`}>Select Habit</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
-                {mockHabits.map((habit) => (
+                {habits.map((habit) => (
                   <TouchableOpacity
-                    key={habit.id}
-                    onPress={() => setSelectedHabitId(habit.id)}
+                    key={habit.$id}
+                    onPress={() => setSelectedHabitId(habit.$id)}
                     className={`px-4 py-3 rounded-xl flex-row items-center ${
-                      selectedHabitId === habit.id
+                      selectedHabitId === habit.$id
                         ? 'bg-white shadow-lg'
                         : (isDark ? 'bg-white/20' : 'bg-gray-200')
                     }`}
                   >
                     <Text className="text-xl mr-2">{habit.icon}</Text>
                     <Text className={`font-medium ${
-                      selectedHabitId === habit.id ? 'text-cyan-500' : colors.text
+                      selectedHabitId === habit.$id ? 'text-cyan-500' : colors.text
                     }`}>
                       {habit.name}
                     </Text>
@@ -295,7 +302,9 @@ export default function HistoryScreen() {
             </View>
 
             {/* Heatmap */}
-            <HabitHeatmap habitId={selectedHabitId} />
+            {selectedHabit && (
+              <HabitHeatmap completedDates={selectedHabit.completedDates || []} />
+            )}
           </View>
         )}
       </ScrollView>

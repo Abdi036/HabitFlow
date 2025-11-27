@@ -43,14 +43,14 @@ export default function HomeScreen() {
     fetchHabits();
   };
 
-  const toggleHabitCompletion = async (habitId: string, currentStatus: boolean) => {
+  const toggleHabitCompletion = async (habitId: string, currentStatus: boolean, currentDates: string[]) => {
     try {
       // Optimistic update
       setHabits(habits.map(h => 
         h.$id === habitId ? { ...h, completed: !currentStatus } : h
       ));
       
-      await updateHabit(habitId, !currentStatus);
+      await updateHabit(habitId, !currentStatus, currentDates);
     } catch (error) {
       console.error('Error updating habit:', error);
       // Revert on error
@@ -157,7 +157,7 @@ export default function HomeScreen() {
                   </View>
                 </View>
                 <TouchableOpacity 
-                  onPress={() => toggleHabitCompletion(habit.$id, habit.completed)}
+                  onPress={() => toggleHabitCompletion(habit.$id, habit.completed, habit.completedDates)}
                   className={`w-8 h-8 rounded-full items-center justify-center ${
                     habit.completed ? 'bg-green-400' : (isDark ? 'bg-white/30' : 'bg-gray-200')
                   }`}
