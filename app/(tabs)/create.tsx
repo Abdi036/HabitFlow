@@ -4,13 +4,17 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Toast from "react-native-toast-message";
+import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
+import { createHabit } from "../../lib/appwrite";
+import type { HabitFormData } from "../../lib/types";
 
 export default function CreateScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { isDark, colors } = useTheme();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<HabitFormData>({
     name: "",
     category: "",
     frequency: "daily",
@@ -34,22 +38,40 @@ export default function CreateScreen() {
       return;
     }
 
+    if (!user) {
+      Toast.show({
+        type: 'error',
+        text1: 'Authentication Error',
+        text2: 'You must be logged in to create habits',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await createHabit(user.$id, formData);
       
       Toast.show({
         type: 'success',
         text1: 'Habit Created',
         text2: 'Your new habit has been added successfully',
       });
+      
+      // Reset form
+      setFormData({
+        name: "",
+        category: "",
+        frequency: "daily",
+        icon: "📝",
+      });
+      
       router.back();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Create habit error:', error);
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: 'Failed to create habit',
+        text2: error?.message || 'Failed to create habit',
       });
     } finally {
       setLoading(false);
