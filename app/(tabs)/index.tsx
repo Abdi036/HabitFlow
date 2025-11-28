@@ -79,16 +79,17 @@ export default function HomeScreen() {
   const progress = habits.length > 0 ? (completedCount / habits.length) * 100 : 0;
 
   return (
+    
     <LinearGradient
       colors={colors.background}
       className="flex-1"
     >
       {/* Fixed Header */}
-      <View className="px-6 pt-12 pb-6">
+      <View className="px-6 pt-8 pb-6 mt-10">
         <View className="flex-row justify-between items-center mb-6">
           <View>
-            <Text className={`${colors.text} text-2xl font-bold`}>Today's Habits</Text>
-            <Text className={`${colors.textSecondary} text-sm mt-1`}>
+            <Text className={`${colors.text} text-4xl font-bold`}>Today's Habits</Text>
+            <Text className={`${colors.textSecondary} text-sm mt-4`}>
               {new Date().toLocaleDateString('en-US', { 
                 weekday: 'long', 
                 month: 'long', 

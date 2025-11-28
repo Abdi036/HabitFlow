@@ -3,7 +3,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
-import Toast from 'react-native-toast-message';
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { deleteHabit, getHabits, updateHabitDetails } from "../../lib/appwrite";
@@ -39,20 +38,12 @@ export default function HabitDetailScreen() {
         setName(foundHabit.name);
         setDescription(foundHabit.description || "");
       } else {
-        Toast.show({
-          type: 'error',
-          text1: 'Error',
-          text2: 'Habit not found',
-        });
+        
         router.back();
       }
     } catch (error) {
       console.error('Error fetching habit:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to load habit details',
-      });
+      
     } finally {
       setLoading(false);
     }
@@ -67,19 +58,11 @@ export default function HabitDetailScreen() {
     try {
       await updateHabitDetails(habit.$id, { name: name.trim() });
       setHabit({ ...habit, name: name.trim() });
-      Toast.show({
-        type: 'success',
-        text1: 'Updated',
-        text2: 'Habit name updated successfully',
-      });
+      
     } catch (error) {
       console.error('Error updating name:', error);
       setName(habit.name); // Revert
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to update name',
-      });
+      
     } finally {
       setIsEditingName(false);
     }
@@ -94,19 +77,11 @@ export default function HabitDetailScreen() {
     try {
       await updateHabitDetails(habit.$id, { description: description.trim() });
       setHabit({ ...habit, description: description.trim() });
-      Toast.show({
-        type: 'success',
-        text1: 'Updated',
-        text2: 'Description updated successfully',
-      });
+      
     } catch (error) {
       console.error('Error updating description:', error);
       setDescription(habit.description || ""); // Revert
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to update description',
-      });
+      
     } finally {
       setIsEditingDesc(false);
     }
@@ -116,20 +91,12 @@ export default function HabitDetailScreen() {
     if (!habit) return;
     try {
       await deleteHabit(habit.$id);
-      Toast.show({
-        type: 'success',
-        text1: 'Deleted',
-        text2: 'Habit deleted successfully',
-      });
+      
       // Use replace to ensure we go back to the tabs root and clear history stack if needed
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Error deleting habit:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to delete habit',
-      });
+       
     }
   };
 

@@ -43,19 +43,8 @@ const SignInScreen = () => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
-      Toast.show({
-        type: 'error',
-        text1: 'Sign In Failed',
-        text2: errorMessage
-      });
-    } else {
-      Toast.show({
-        type: 'success',
-        text1: 'Welcome Back!',
-        text2: 'You have successfully signed in'
-      });
-      
+     
+    } else {      
       router.replace('/(tabs)');
     }
   };
@@ -70,7 +59,7 @@ const SignInScreen = () => {
         className="flex-1"
       >
         <ScrollView className="flex-1" contentContainerClassName="min-h-full">
-          <View className="flex-1 px-6 pt-12 flex justify-center">
+          <View className="flex-1 px-6 flex justify-center">
 
             <View className="items-center mb-6">
               <Ionicons 
