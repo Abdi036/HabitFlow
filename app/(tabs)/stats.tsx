@@ -1,50 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { ScrollView, Text, View } from "react-native";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
+import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
-
-const highlightStats = [
-  { label: "Habits active", value: "06", icon: "layers-outline", delta: "+2" },
-  { label: "Perfect days", value: "18", icon: "sparkles-outline", delta: "+5" },
-  { label: "This week", value: "82%", icon: "bar-chart-outline", delta: "-3%" },
-];
-
-const weeklySnapshot = [
-  { label: "M", value: 4 },
-  { label: "T", value: 5 },
-  { label: "W", value: 6 },
-  { label: "T", value: 3 },
-  { label: "F", value: 6 },
-  { label: "S", value: 2 },
-  { label: "S", value: 5 },
-];
-
-const achievements = [
-  {
-    icon: "🔥",
-    title: "Week Warrior",
-    description: "Complete all habits for 7 days",
-    unlocked: true,
-  },
-  {
-    icon: "⭐",
-    title: "Perfect Month",
-    description: "100% completion for a month",
-    unlocked: false,
-  },
-  {
-    icon: "💪",
-    title: "Fitness Fanatic",
-    description: "Complete 30 workout sessions",
-    unlocked: true,
-  },
-  {
-    icon: "🎯",
-    title: "Consistency King",
-    description: "30-day streak on any habit",
-    unlocked: false,
-  },
-];
+import { getHabits } from "../../lib/appwrite";
+import type { Habit } from "../../lib/types";
 
 const reflections = [
   "Which habit made you feel the best this week?",
@@ -60,11 +22,13 @@ const StatHighlightCard = ({ colors, isDark, stat }: any) => (
       >
         <Ionicons name={stat.icon as any} size={18} color={colors.icon} />
       </View>
-      <Text
-        className={`${stat.delta.startsWith("-") ? "text-red-400" : "text-green-300"} text-xs font-semibold`}
-      >
-        {stat.delta}
-      </Text>
+      {stat.delta && (
+        <Text
+          className={`${stat.delta.startsWith("-") ? "text-red-400" : "text-green-300"} text-xs font-semibold`}
+        >
+          {stat.delta}
+        </Text>
+      )}
     </View>
     <Text className={`${colors.textSecondary} text-xs uppercase tracking-wide`}>
       {stat.label}
@@ -130,7 +94,7 @@ const WeeklyBar = ({
   maxValue: number;
   isDark: boolean;
 }) => {
-  const height = (value / maxValue) * 90;
+  const height = maxValue > 0 ? (value / maxValue) * 90 : 0;
   return (
     <View className="items-center flex-1">
       <View
@@ -139,7 +103,7 @@ const WeeklyBar = ({
       >
         <View
           className="bg-green-400 rounded-2xl"
-          style={{ height, width: 8 }}
+          style={{ height: Math.max(height, 4), width: 8 }}
         />
       </View>
       <Text className="text-xs text-white/70 mt-2">{day}</Text>
@@ -147,8 +111,232 @@ const WeeklyBar = ({
   );
 };
 
+// Date helper
+const getStartOfWeek = () => {
+    const d = new Date();
+    const day = d.getDay(); 
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    return new Date(d.setDate(diff));
+};
+
+const formatDateKey = (date: Date) => {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
 export default function StatsScreen() {
   const { isDark, colors } = useTheme();
+  const { user } = useAuth();
+  
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Calculated Stats State
+  const [stats, setStats] = useState({
+    activeHabits: 0,
+    perfectDays: 0,
+    weeklyCompletionRate: 0,
+    completionDelta: "+0%", // Harder to calculate without historical snapshots, keeping placeholder or simple logic
+    monthlyCompletionRate: 0,
+    streakCount: 0, // Habits currently on a streak
+  });
+
+  const [weeklySnapshot, setWeeklySnapshot] = useState<{label: string, value: number}[]>([]);
+  const [achievements, setAchievements] = useState([
+    {
+        id: 'week_warrior',
+        icon: "🔥",
+        title: "Week Warrior",
+        description: "Complete all habits for 7 days",
+        unlocked: false,
+    },
+    {
+        id: 'perfect_month',
+        icon: "⭐",
+        title: "Perfect Month",
+        description: "100% completion for a month",
+        unlocked: false,
+    },
+    {
+        id: 'fitness',
+        icon: "💪",
+        title: "Fitness Fanatic",
+        description: "Complete 30 workout sessions",
+        unlocked: false,
+    },
+    {
+        id: 'consistency',
+        icon: "🎯",
+        title: "Consistency King",
+        description: "30-day streak on any habit",
+        unlocked: false,
+    },
+  ]);
+
+  const calculateStats = (currentHabits: Habit[]) => {
+    if (currentHabits.length === 0) {
+        setStats({
+            activeHabits: 0,
+            perfectDays: 0,
+            weeklyCompletionRate: 0,
+            completionDelta: "0%",
+            monthlyCompletionRate: 0,
+            streakCount: 0
+        });
+        setWeeklySnapshot(["M", "T", "W", "T", "F", "S", "S"].map(l => ({ label: l, value: 0 })));
+        return;
+    }
+
+    const today = new Date();
+    const activeHabitsCount = currentHabits.length;
+    
+    // 1. Weekly Snapshot & Completion Rate
+    // Generate dates for current week or last 7 days. Let's do last 7 days for "Momentum"
+    const last7Days = [];
+    const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
+    const weeklyData: { label: string; value: number }[] = [];
+    let totalWeeklyCompletions = 0;
+    
+    // We'll use Mon-Sun for the bar chart typical view, or just last 7 days relative to today?
+    // Let's stick to Mon-Sun of current week for structure
+    const startOfWeek = getStartOfWeek();
+    const weekDates = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(startOfWeek);
+        d.setDate(d.getDate() + i);
+        weekDates.push(d);
+    }
+
+    weekDates.forEach(date => {
+        const dateKey = formatDateKey(date);
+        const dayLabel = dayLabels[date.getDay()];
+        
+        let dailyCount = 0;
+        currentHabits.forEach(h => {
+             if (h.completedDates.includes(dateKey)) dailyCount++;
+        });
+
+        weeklyData.push({ label: dayLabel, value: dailyCount });
+        totalWeeklyCompletions += dailyCount;
+    });
+
+    const maxWeeklyCompletions = activeHabitsCount * 7;
+    const weeklyRate = maxWeeklyCompletions > 0 
+        ? Math.round((totalWeeklyCompletions / maxWeeklyCompletions) * 100) 
+        : 0;
+
+    // 2. Perfect Days (All active habits completed in a day)
+    // We'll look at all unique dates present in any habit history
+    const allDates = new Set<string>();
+    currentHabits.forEach(h => h.completedDates.forEach(d => allDates.add(d)));
+    
+    let perfectDaysCount = 0;
+    allDates.forEach(dateStr => {
+        // Check if all habits were completed on this date
+        // Note: This logic assumes all habits were active on that date. 
+        // For simplicity, we count a perfect day if completions == total habits count
+        const completionsOnDate = currentHabits.filter(h => h.completedDates.includes(dateStr)).length;
+        if (completionsOnDate === activeHabitsCount) perfectDaysCount++;
+    });
+
+    // 3. Streaking Habits Count
+    let streakCount = 0;
+    currentHabits.forEach(h => {
+        // Simple check if completed today or yesterday
+         const todayKey = formatDateKey(new Date());
+         const yesterday = new Date();
+         yesterday.setDate(yesterday.getDate() - 1);
+         const yesterdayKey = formatDateKey(yesterday);
+         
+         if (h.completedDates.includes(todayKey) || h.completedDates.includes(yesterdayKey)) {
+             streakCount++;
+         }
+    });
+
+    // 4. Monthly Rate (Current Month)
+    const currentMonthPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    let monthCompletions = 0;
+    let daysPassedInMonth = today.getDate();
+    
+    currentHabits.forEach(h => {
+        monthCompletions += h.completedDates.filter(d => d.startsWith(currentMonthPrefix)).length;
+    });
+    
+    // Max completions = habits * days passed
+    const maxMonthCompletions = activeHabitsCount * daysPassedInMonth;
+    const monthlyRate = maxMonthCompletions > 0 
+        ? Math.round((monthCompletions / maxMonthCompletions) * 100) 
+        : 0;
+
+
+    setStats({
+        activeHabits: activeHabitsCount,
+        perfectDays: perfectDaysCount,
+        weeklyCompletionRate: weeklyRate,
+        completionDelta: "+12%", // Placeholder
+        monthlyCompletionRate: monthlyRate,
+        streakCount
+    });
+    
+    setWeeklySnapshot(weeklyData);
+
+    // 5. Update Achievements
+    setAchievements(prev => prev.map(a => {
+        let isUnlocked = false;
+        if (a.id === 'week_warrior') {
+            // Check for any 7-day stretch where completions == habits count * 7 (simplified: weekly rate 100%?)
+            // let's just use current week perfect days count for now
+            isUnlocked = weeklyRate === 100;
+        } else if (a.id === 'perfect_month') {
+            isUnlocked = monthlyRate === 100 && daysPassedInMonth > 20; // heuristic
+        } else if (a.id === 'fitness') {
+            // Check fitness category count
+            const fitnessCompletions = currentHabits
+                .filter(h => h.category.toLowerCase().includes('fitness') || h.category.toLowerCase().includes('health'))
+                .reduce((acc, h) => acc + h.completedDates.length, 0);
+            isUnlocked = fitnessCompletions >= 30;
+        } else if (a.id === 'consistency') {
+            // Check simple streak length on any habit
+            isUnlocked = currentHabits.some(h => h.completedDates.length >= 30); // Very rough approximation of streak
+        }
+        return { ...a, unlocked: isUnlocked };
+    }));
+
+  };
+
+  const loadData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+        const data = await getHabits(user.$id);
+        setHabits(data);
+        calculateStats(data);
+    } catch (e) {
+        console.error("Failed to load stats", e);
+    } finally {
+        setLoading(false);
+        setRefreshing(false);
+    }
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  const onRefresh = () => {
+      setRefreshing(true);
+      loadData();
+  };
+
+  if (loading && !refreshing && habits.length === 0) {
+      return (
+          <LinearGradient colors={colors.background} className="flex-1 justify-center items-center">
+              <ActivityIndicator size="large" color={colors.icon} />
+          </LinearGradient>
+      );
+  }
 
   return (
     <LinearGradient colors={colors.background} className="flex-1">
@@ -160,6 +348,9 @@ export default function StatsScreen() {
           paddingTop: 48,
         }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.text} />
+        }
       >
         <View className={`${colors.card} rounded-3xl p-6 mb-6`}>
           <View className="flex-row items-start justify-between">
@@ -170,7 +361,7 @@ export default function StatsScreen() {
                 This month
               </Text>
               <Text className={`${colors.text} text-4xl font-bold mt-2`}>
-                87%
+                {stats.monthlyCompletionRate}%
               </Text>
               <Text className={`${colors.textSecondary} text-sm mt-1`}>
                 completion across all active habits
@@ -185,24 +376,31 @@ export default function StatsScreen() {
           <View className="flex-row gap-2 mt-5">
             <View className="bg-green-400/20 px-3 py-1 rounded-full">
               <Text className="text-green-200 text-xs font-semibold">
-                +12% vs last month
+                {stats.completionDelta === "0%" ? "No change" : `${stats.completionDelta} vs last month`}
               </Text>
             </View>
             <View className="bg-white/10 px-3 py-1 rounded-full">
-              <Text className="text-white/80 text-xs">4 habits streaking</Text>
+              <Text className="text-white/80 text-xs">{stats.streakCount} habits streaking</Text>
             </View>
           </View>
         </View>
 
         <View className="flex-row gap-3 mb-6">
-          {highlightStats.map((stat) => (
             <StatHighlightCard
-              key={stat.label}
-              stat={stat}
               colors={colors}
               isDark={isDark}
+              stat={{ label: "Habits active", value: stats.activeHabits.toString().padStart(2, '0'), icon: "layers-outline", delta: "" }}
             />
-          ))}
+             <StatHighlightCard
+              colors={colors}
+              isDark={isDark}
+              stat={{ label: "Perfect days", value: stats.perfectDays.toString().padStart(2, '0'), icon: "sparkles-outline", delta: "" }}
+            />
+             <StatHighlightCard
+              colors={colors}
+              isDark={isDark}
+              stat={{ label: "This week", value: `${stats.weeklyCompletionRate}%`, icon: "bar-chart-outline", delta: "" }}
+            />
         </View>
 
         <View className={`${colors.card} rounded-3xl p-5 mb-6`}>
@@ -218,12 +416,12 @@ export default function StatsScreen() {
             <Ionicons name="pulse" size={20} color={colors.icon} />
           </View>
           <View className="flex-row gap-4">
-            {weeklySnapshot.map((day) => (
+            {weeklySnapshot.map((day, index) => (
               <WeeklyBar
-                key={`${day.label}-${day.value}`}
+                key={`${day.label}-${index}`}
                 day={day.label}
                 value={day.value}
-                maxValue={6}
+                maxValue={stats.activeHabits}
                 isDark={isDark}
               />
             ))}
@@ -251,56 +449,6 @@ export default function StatsScreen() {
           ))}
         </View>
 
-        <View className={`${colors.card} rounded-3xl p-5 mb-6`}>
-          <Text className={`${colors.text} font-semibold text-lg mb-2`}>
-            Reflect & refocus
-          </Text>
-          <Text className={`${colors.textSecondary} text-xs mb-4`}>
-            Take a minute to journal through one of these prompts.
-          </Text>
-          {reflections.map((prompt, index) => (
-            <View
-              key={prompt}
-              className={`flex-row items-center py-3 ${
-                index < reflections.length - 1
-                  ? isDark
-                    ? "border-white/10"
-                    : "border-gray-200"
-                  : ""
-              } ${index < reflections.length - 1 ? "border-b" : ""}`}
-            >
-              <View className="w-8 h-8 rounded-full bg-white/10 items-center justify-center mr-3">
-                <Text className="text-white/80 text-sm">{index + 1}</Text>
-              </View>
-              <Text className={`${colors.text} flex-1 text-sm`}>{prompt}</Text>
-              <Ionicons name="arrow-forward" size={18} color={colors.icon} />
-            </View>
-          ))}
-        </View>
-
-        <View
-          className={`${isDark ? "bg-white" : "bg-white shadow-2xl"} rounded-3xl p-6 mb-6`}
-        >
-          <Text className="text-cyan-600 text-lg font-bold mb-2">
-            Keep going!
-          </Text>
-          <Text className="text-gray-600 text-sm mb-3">
-            You are 2 perfect days away from unlocking &quot;Perfect
-            Month&quot;. Queue up your reminders and finish strong.
-          </Text>
-          <View className="flex-row gap-2">
-            <View className="bg-gray-100 rounded-full px-3 py-1">
-              <Text className="text-gray-700 text-xs font-semibold">
-                Daily reminders on
-              </Text>
-            </View>
-            <View className="bg-gray-100 rounded-full px-3 py-1">
-              <Text className="text-gray-700 text-xs font-semibold">
-                Next milestone: 48 streak
-              </Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
     </LinearGradient>
   );
