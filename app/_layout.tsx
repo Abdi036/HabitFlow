@@ -60,7 +60,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)/signin" />
             <Stack.Screen name="(auth)/forgotpassword" />
           </Stack>
-          <Toast />
+          <Toast visibilityTime={3000} autoHide={true} />
         </ThemeProvider>
       </AuthProvider>
     </>

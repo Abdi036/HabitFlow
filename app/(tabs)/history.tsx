@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -149,16 +149,27 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const currentYear = new Date().getFullYear();
+  
+  // Track if initial data has been loaded to avoid refetching on every focus
+  const hasLoadedData = useRef(false);
 
   const fetchHabits = useCallback(
-    async (showSpinner: boolean = true) => {
+    async (showSpinner: boolean = true, forceRefresh: boolean = false) => {
       if (!user) return;
+      
+      // Skip fetch if data is already loaded and not forcing refresh
+      if (hasLoadedData.current && !forceRefresh) {
+        setLoading(false);
+        return;
+      }
+      
       if (showSpinner) {
         setLoading(true);
       }
       try {
         const fetchedHabits = await getHabits(user.$id);
         setHabits(fetchedHabits);
+        hasLoadedData.current = true; // Mark data as loaded
         setSelectedHabitId((prev) => {
           if (!fetchedHabits.length) return null;
           return prev ?? fetchedHabits[0].$id;
@@ -181,7 +192,7 @@ export default function HistoryScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchHabits(false);
+    fetchHabits(false, true);
   };
 
   const selectedHabit = useMemo(() => {

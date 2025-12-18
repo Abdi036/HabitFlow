@@ -17,6 +17,7 @@ export default function LandingScreen() {
     }
   }, [user, loading, router]);
 
+  // Show loading screen while checking auth state
   if (loading) {
     return (
       <LinearGradient
@@ -25,6 +26,18 @@ export default function LandingScreen() {
       >
         <ActivityIndicator size="large" color={colors.icon} />
         <Text className={`${colors.text} mt-4`}>Loading...</Text>
+      </LinearGradient>
+    );
+  }
+
+  // If user is logged in, show nothing while redirecting to prevent flash
+  if (user) {
+    return (
+      <LinearGradient
+        colors={colors.background}
+        className="flex-1 justify-center items-center"
+      >
+        <ActivityIndicator size="large" color={colors.icon} />
       </LinearGradient>
     );
   }
