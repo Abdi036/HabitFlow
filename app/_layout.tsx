@@ -42,7 +42,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar backgroundColor="#161622" barStyle="light-content" />
+      <StatusBar backgroundColor="#282829ff" barStyle="light-content" />
       <AuthProvider>
         <ThemeProvider>
           <Stack

@@ -374,7 +374,7 @@ export default function HistoryScreen() {
                   <View className="flex-row justify-between items-center mb-4">
                     <View>
                       <Text className={`${colors.text} text-lg font-semibold`}>
-                        Year in dots
+                        Year
                       </Text>
                       <Text className={`${colors.textSecondary} text-xs`}>
                         {currentYear}
@@ -392,7 +392,7 @@ export default function HistoryScreen() {
                     <View>
                       <View
                         className="flex-row mb-2"
-                        style={{ marginLeft: WEEKDAY_LABEL_WIDTH }}
+                        style={{ marginLeft: WEEKDAY_LABEL_WIDTH + 4 }} // Added +4 (approx mr-1) for alignment
                       >
                         {monthPositions.map((label, index) => {
                           const previousWeekIndex =
@@ -403,15 +403,19 @@ export default function HistoryScreen() {
                             index === 0
                               ? label.weekIndex
                               : label.weekIndex - previousWeekIndex;
+                          
+                          // Fix: Flexbox means margin is relative to the previous element's end.
+                          // Subtract approx width of previous label (~20px) from the theoretical calculated distance.
+                          const calculatedMargin = index === 0
+                                    ? label.weekIndex * WEEK_COLUMN_WIDTH
+                                    : (offset * WEEK_COLUMN_WIDTH) - 20;
+
                           return (
                             <Text
                               key={`${label.month}-${label.weekIndex}`}
                               className={`${colors.textSecondary} text-xs`}
                               style={{
-                                marginLeft:
-                                  index === 0
-                                    ? label.weekIndex * WEEK_COLUMN_WIDTH
-                                    : offset * WEEK_COLUMN_WIDTH,
+                                marginLeft: Math.max(0, calculatedMargin)
                               }}
                             >
                               {label.month}
@@ -423,16 +427,19 @@ export default function HistoryScreen() {
                       <View className="flex-row">
                         <View
                           style={{ width: WEEKDAY_LABEL_WIDTH }}
-                          className="mr-1"
+                          className="mr-1 pt-[2px]" // Added padding top to align text center with cells
                         >
                           {DAY_LABELS.map((day, index) => (
-                            <Text
-                              key={`${day}-${index}`}
-                              className={`${colors.textSecondary} text-xs mb-1`}
-                              style={{ height: CELL_SIZE + CELL_GAP }}
+                            <View 
+                                key={`${day}-${index}`}
+                                style={{ height: CELL_SIZE, marginBottom: CELL_GAP, justifyContent: 'center' }}
                             >
-                              {index % 2 === 0 ? day : ""}
-                            </Text>
+                                <Text
+                                className={`${colors.textSecondary} text-[10px] font-medium text-center`}
+                                >
+                                {index % 2 === 0 ? day : ""}
+                                </Text>
+                            </View>
                           ))}
                         </View>
 

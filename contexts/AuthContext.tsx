@@ -12,6 +12,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   forgotPassword: (email: string) => Promise<{ error: any }>;
+  updateName: (name: string) => Promise<{ error: any }>;
 }
 
  
@@ -100,6 +101,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error: null };
   };
 
+  const updateName = async (name: string) => {
+    try {
+      if (!user) return { error: "User not logged in" };
+      await account.updateName(name);
+      
+      // Update local state
+      const updatedUser = await account.get();
+      setUser(updatedUser);
+      
+      return { error: null };
+    } catch (error: any) {
+      console.error('Update name error:', error);
+      return { error };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -107,6 +124,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signIn,
     signOut,
     forgotPassword,
+    updateName,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
