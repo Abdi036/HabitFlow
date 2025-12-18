@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext";
 
 interface Reminder {
@@ -15,6 +16,8 @@ interface Reminder {
 export default function NotificationsScreen() {
   const router = useRouter();
   const { isDark, colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  
   const [reminders, setReminders] = useState<Reminder[]>([
     { id: "1", title: "Morning Meditation", time: "07:00 AM", enabled: true },
     { id: "2", title: "Read 30 Minutes", time: "08:00 PM", enabled: true },
@@ -35,15 +38,20 @@ export default function NotificationsScreen() {
     <LinearGradient
       colors={colors.background}
       className="flex-1"
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
-      <ScrollView className="flex-1 px-6 pt-12">
+      <ScrollView 
+        className="flex-1 px-6"
+        contentContainerStyle={{ paddingVertical: 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
-        <View className="flex-row items-center mb-6">
+        <View className="flex-row items-center mb-8">
           <TouchableOpacity 
             onPress={() => router.back()}
-            className={`${isDark ? 'bg-white/20' : 'bg-white'} p-2 rounded-xl mr-4`}
+            className={`${isDark ? 'bg-white/10' : 'bg-white'} w-10 h-10 rounded-full items-center justify-center mr-4`}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.icon} />
+            <Ionicons name="arrow-back" size={20} color={colors.icon} />
           </TouchableOpacity>
           <View>
             <Text className={`${colors.text} text-2xl font-bold`}>Notifications</Text>
@@ -65,22 +73,22 @@ export default function NotificationsScreen() {
             reminders.map((reminder) => (
               <View 
                 key={reminder.id}
-                className={`${colors.card} p-4 rounded-2xl flex-row items-center justify-between`}
+                className={`${colors.card} p-4 rounded-3xl flex-row items-center justify-between mb-3`}
               >
-                <View className="flex-1">
-                  <Text className={`${colors.text} font-bold text-lg`}>{reminder.time}</Text>
-                  <Text className={`${colors.textSecondary}`}>{reminder.title}</Text>
+                <View className="flex-1 mr-4">
+                  <Text className={`${colors.text} font-bold text-base mb-1`}>{reminder.time}</Text>
+                  <Text className={`${colors.textSecondary} text-xs`}>{reminder.title}</Text>
                 </View>
                 
-                <View className="flex-row items-center gap-4">
+                <View className="flex-row items-center gap-3">
                   <Switch
                     value={reminder.enabled}
                     onValueChange={() => toggleReminder(reminder.id)}
                     trackColor={{ false: '#767577', true: '#81b0ff' }}
                     thumbColor={reminder.enabled ? '#3AB5F6' : '#f4f3f4'}
                   />
-                  <TouchableOpacity onPress={() => deleteReminder(reminder.id)}>
-                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                  <TouchableOpacity onPress={() => deleteReminder(reminder.id)} className="p-2">
+                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
                   </TouchableOpacity>
                 </View>
               </View>
