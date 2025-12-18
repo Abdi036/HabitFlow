@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Animated } from "react-native";
+import { Animated, StatusBar } from "react-native";
 import Toast from "react-native-toast-message";
 import SplashScreen from "../components/SplashScreen";
 import { AuthProvider } from "../contexts/AuthContext";
@@ -41,25 +41,28 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "transparent" },
-            animation: "slide_from_right",
-            animationDuration: 300,
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="notifications" />
-          <Stack.Screen name="(auth)/signup" />
-          <Stack.Screen name="(auth)/signin" />
-          <Stack.Screen name="(auth)/forgotpassword" />
-        </Stack>
-        <Toast />
-      </ThemeProvider>
-    </AuthProvider>
+    <>
+      <StatusBar backgroundColor="#161622" barStyle="light-content" />
+      <AuthProvider>
+        <ThemeProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: "transparent" },
+              animation: "slide_from_right",
+              animationDuration: 300,
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="notifications" />
+            <Stack.Screen name="(auth)/signup" />
+            <Stack.Screen name="(auth)/signin" />
+            <Stack.Screen name="(auth)/forgotpassword" />
+          </Stack>
+          <Toast />
+        </ThemeProvider>
+      </AuthProvider>
+    </>
   );
 }

@@ -15,7 +15,7 @@ export default function LandingScreen() {
     if (!loading && user) {
       router.replace("/(tabs)");
     }
-  }, [user, loading]);
+  }, [user, loading, router]);
 
   if (loading) {
     return (
@@ -51,13 +51,17 @@ export default function LandingScreen() {
         Build Better Habits
       </Text>
 
-      <Text className={`${colors.text} italic text-lg text-center mb-8 font-bold`}>
+      <Text
+        className={`${colors.text} italic text-lg text-center mb-8 font-bold`}
+      >
         Track your daily routine, build streaks, and achieve{"\n"}your goals
       </Text>
 
       <View className="w-full space-y-3 mb-10">
         <View className={`${colors.card} p-4 rounded-xl mb-5`}>
-          <Text className={`${colors.text} font-bold`}>📍 Track daily habits</Text>
+          <Text className={`${colors.text} font-bold`}>
+            📍 Track daily habits
+          </Text>
         </View>
 
         <View className={`${colors.card} p-4 rounded-xl mb-5`}>
@@ -65,7 +69,9 @@ export default function LandingScreen() {
         </View>
 
         <View className={`${colors.card} p-4 rounded-xl mb-5`}>
-          <Text className={`${colors.text} font-bold`}>📊 See your progress</Text>
+          <Text className={`${colors.text} font-bold`}>
+            📊 See your progress
+          </Text>
         </View>
       </View>
 
